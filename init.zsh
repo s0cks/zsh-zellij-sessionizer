@@ -1,3 +1,8 @@
 #!/usr/bin/env zsh
 
-echo "Hello World"
+__open_sessionizer() {
+  zellij-sessionizer
+}
+
+zle -N __open_sessionizer
+bindkey '^-' __open_sessionizer
