@@ -5,7 +5,7 @@
 ## Installation
 
 ```sh
-TBD
+zmodule s0cks/zsh-zellij-sessionizer --if '[[ \$+commands[zellij] ]]'
 ```
 
 ## License

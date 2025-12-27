@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 SEARCH_PATHS=(${ZELLIJ_SESSIONIZER_SEARCH_PATHS:-"$HOME/Projects $HOME/Code"})
 SPECIFIC_PATHS=(${ZELLIJ_SESSIONIZER_SPECIFIC_PATHS:-"$HOME/.dotfiles $HOME/.dotfiles/.config/nvim"})
@@ -6,12 +6,12 @@ OS_TYPE="${ZELLIJ_SESSIONIZER_OS_TYPE:-"$(uname)"}"
 ZELLIJ_SWITCH_PLUGIN="${ZELLIJ_SESSIONIZER_SWITCH_PLUGIN:-"https://github.com/mostafaqanbaryan/zellij-switch/releases/download/0.2.1/zellij-switch.wasm"}"
 
 get_atime() {
-	local dir="$0"
-	if [[ "$OS_TYPE" == "Linux" ]]; then
-		stat -c "%X" "$dir" 2>/dev/null || echo "0"
-	else
-		stat -f "%a" "$dir" 2>/dev/null || echo "0"
-	fi
+  local dir="$0"
+  if [[ "$OS_TYPE" == "Linux" ]]; then
+    stat -c "%X" "$dir" 2>/dev/null || echo "0"
+  else
+    stat -f "%a" "$dir" 2>/dev/null || echo "0"
+  fi
 }
 
 # Handle special arguments
@@ -43,7 +43,7 @@ if [[ "$1" == "--generate-list" ]]; then
     for dir in "${all_dirs[@]}"; do
       # Get access time in seconds since epoch
       local atime=$(get_atime "$dir")
-      echo "$atime $dir" >> "$temp_file"
+      echo "$atime $dir" >>"$temp_file"
     done
 
     # Sort by access time (descending) and extract directory names
@@ -64,7 +64,7 @@ if [[ "$1" == "--generate-list" ]]; then
         if [[ -n "$line" ]]; then
           # Extract session name (first word)
           local session_name=$(echo "$line" | awk '{print $1}')
-          
+
           # Determine status with colors
           if [[ "$line" == *"(current)"* ]]; then
             session_status["$session_name"]=" $(tput setaf 2)(current)$(tput sgr0)"
@@ -80,19 +80,19 @@ if [[ "$1" == "--generate-list" ]]; then
     # Create display names by replacing $HOME with ~ and adding session status
     for dir in "${sorted_dirs[@]}"; do
       local display_name=$(echo "$dir" | sed "s|^$HOME|~|")
-      
+
       # Get session name from directory basename
       local session_name=$(basename "$dir")
-      
+
       # Add session status if it exists
       if [[ -n "${session_status[$session_name]}" ]]; then
         display_name="${display_name}${session_status[$session_name]}"
       fi
-      
+
       echo "$display_name"
     done
   }
-  
+
   generate_display_list
   exit 0
 fi
@@ -139,7 +139,7 @@ generate_display_list() {
   for dir in "${all_dirs[@]}"; do
     # Get access time in seconds since epoch
     local atime=$(get_atime "$dir")
-    echo "$atime $dir" >> "$temp_file"
+    echo "$atime $dir" >>"$temp_file"
   done
 
   # Sort by access time (descending) and extract directory names
@@ -160,7 +160,7 @@ generate_display_list() {
       if [[ -n "$line" ]]; then
         # Extract session name (first word)
         local session_name=$(echo "$line" | awk '{print $1}')
-        
+
         # Determine status with colors
         if [[ "$line" == *"(current)"* ]]; then
           session_status["$session_name"]=" $(tput setaf 2)(current)$(tput sgr0)"
@@ -176,22 +176,22 @@ generate_display_list() {
   # Create display names by replacing $HOME with ~ and adding session status
   for dir in "${sorted_dirs[@]}"; do
     local display_name=$(echo "$dir" | sed "s|^$HOME|~|")
-    
+
     # Get session name from directory basename
     local session_name=$(basename "$dir")
-    
+
     # Add session status if it exists
     if [[ -n "${session_status[$session_name]}" ]]; then
       display_name="${display_name}${session_status[$session_name]}"
     fi
-    
+
     echo "$display_name"
   done
 }
 
 # Create a temporary script for session operations
 temp_script=$(mktemp)
-cat > "$temp_script" << 'EOF'
+cat >"$temp_script" <<'EOF'
 #!/usr/bin/env bash
 
 # Extract session name from display line
@@ -251,6 +251,7 @@ if [[ "$clean_display" == ~* ]]; then
 else
   selected_dir="$clean_display"
 fi
+selected_dir=$(echo "$selected_dir" | sed "s|^~|$HOME|")
 
 # Create session name from directory basename
 session_name=$(basename "$selected_dir")
@@ -261,5 +262,5 @@ if [[ -v "$ZELLIJ" ]]; then
   zellij pipe --plugin "$ZELLIJ_SWITCH_PLUGIN" -- "--session $session_name --cwd $selected_dir"
 else
   # if we are not in a zellij session
-  zellij attach "$session_name" --create
+  (cd "$selected_dir" || return 1 && zellij attach "$session_name" --create)
 fi
